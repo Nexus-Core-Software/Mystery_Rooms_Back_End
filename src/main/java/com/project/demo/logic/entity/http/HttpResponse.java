@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.List;
 
 public class HttpResponse<T> {
+    private String status = "success";
     private  String message;
     private T data;
 
@@ -38,6 +39,14 @@ public class HttpResponse<T> {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
 

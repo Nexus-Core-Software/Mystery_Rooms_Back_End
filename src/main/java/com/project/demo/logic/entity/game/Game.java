@@ -1,9 +1,11 @@
 package com.project.demo.logic.entity.game;
 
+import com.project.demo.logic.entity.user.User;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Table(name = "game")
@@ -15,7 +17,16 @@ public class Game {
     private String name;
     private String description;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private GameStatus status;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "host_id")
+    private User host;
+
+    @Column(name = "closed_at")
+    private LocalDateTime closedAt;
+
     private String  imgURL;
 
     @CreationTimestamp
@@ -34,12 +45,28 @@ public class Game {
         this.id = id;
     }
 
-    public String getStatus() {
+    public GameStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(GameStatus status) {
         this.status = status;
+    }
+
+    public User getHost() {
+        return host;
+    }
+
+    public void setHost(User host) {
+        this.host = host;
+    }
+
+    public LocalDateTime getClosedAt() {
+        return closedAt;
+    }
+
+    public void setClosedAt(LocalDateTime closedAt) {
+        this.closedAt = closedAt;
     }
 
     public String getName() {
