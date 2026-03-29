@@ -55,7 +55,7 @@ public class GameRestController {
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Game addGame(@RequestBody Game game) {
-        return  gameRepository.save(game);
+        return gameService.createGame(game);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
@@ -65,7 +65,7 @@ public class GameRestController {
     }
 
     @DeleteMapping("/{roomId}/close")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<?> closeRoom(
             @PathVariable Long roomId,
             @RequestBody CloseRoomRequest closeRoomRequest,

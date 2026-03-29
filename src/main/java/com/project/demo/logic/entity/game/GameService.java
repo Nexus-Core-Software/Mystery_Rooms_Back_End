@@ -1,9 +1,12 @@
 package com.project.demo.logic.entity.game;
 
+import com.project.demo.logic.entity.user.User;
+import com.project.demo.logic.entity.user.UserRepository;
 import com.project.demo.rest.game.dto.CloseRoomResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -14,9 +17,21 @@ public class GameService {
     private static final Logger LOGGER = LoggerFactory.getLogger(GameService.class);
 
     private final GameRepository gameRepository;
+    private final UserRepository userRepository;
 
-    public GameService(GameRepository gameRepository) {
+    public GameService(GameRepository gameRepository, UserRepository userRepository) {
         this.gameRepository = gameRepository;
+        this.userRepository = userRepository;
+    }
+
+    public Game createGame(Game game) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User host = userRepository.findByEmail(email).orElseThrow();
+
+        game.setStatus(GameStatus.ACTIVA);
+        game.setHost(host);
+
+        return gameRepository.save(game);
     }
 
     public CloseRoomResult closeRoom(Long roomId, Long userId) {
