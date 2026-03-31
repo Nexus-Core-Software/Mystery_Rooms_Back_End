@@ -1,6 +1,6 @@
-package com.project.demo.logic.entity.game;
+    package com.project.demo.logic.entity.game;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+    import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface GameRepository extends JpaRepository<Game, Long> {
-}
+    public interface GameRepository extends JpaRepository<Game, Long> {
+    }
