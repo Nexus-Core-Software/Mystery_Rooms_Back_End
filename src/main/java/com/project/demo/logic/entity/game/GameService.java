@@ -3,6 +3,7 @@ package com.project.demo.logic.entity.game;
 import com.project.demo.logic.entity.user.User;
 import com.project.demo.logic.entity.user.UserRepository;
 import com.project.demo.rest.game.dto.CloseRoomResponse;
+import com.project.demo.rest.game.dto.GameSessionResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -59,8 +60,65 @@ public class GameService {
         return CloseRoomResult.closed(buildResponse(savedGame));
     }
 
+    public GameSessionResult pauseGame(Long roomId, Long userId) {
+        Game game = gameRepository.findById(roomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sala no encontrada."));
+
+        if (game.getStatus() != GameStatus.ACTIVA) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La sesión no está activa");
+        }
+
+        if (game.getHost() == null || !game.getHost().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes permisos para pausar/reanudar esta sesión");
+        }
+
+        game.setStatus(GameStatus.PAUSADA);
+        game.setPausedAt(LocalDateTime.now());
+        game.setResumedAt(null);
+
+        Game savedGame = gameRepository.save(game);
+
+        notifyPlayersSessionEventWithRetry(savedGame, "paused");
+
+        return GameSessionResult.paused(buildSessionResponse(savedGame));
+    }
+
+    public GameSessionResult resumeGame(Long roomId, Long userId) {
+        Game game;
+        try {
+            game = gameRepository.findById(roomId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sala no encontrada."));
+        } catch (RuntimeException exception) {
+            if (isInvalidGameStatusException(exception)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El estado de la sesión no es válido");
+            }
+            throw exception;
+        }
+
+        if (game.getStatus() != GameStatus.PAUSADA) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La sesión no está pausada");
+        }
+
+        if (game.getHost() == null || !game.getHost().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes permisos para pausar/reanudar esta sesión");
+        }
+
+        game.setStatus(GameStatus.ACTIVA);
+        game.setResumedAt(LocalDateTime.now());
+
+        Game savedGame = gameRepository.save(game);
+
+        notifyPlayersSessionEventWithRetry(savedGame, "resumed");
+
+        return GameSessionResult.resumed(buildSessionResponse(savedGame));
+    }
+
     private CloseRoomResponse buildResponse(Game game) {
         return new CloseRoomResponse(game.getId(), game.getStatus(), game.getClosedAt());
+    }
+
+    private GameSessionResponse buildSessionResponse(Game game) {
+        return new GameSessionResponse(game.getId(), game.getStatus(), game.getPausedAt(), game.getResumedAt());
     }
 
     private boolean hasActiveGameSession(Game game) {
@@ -87,5 +145,35 @@ public class GameService {
 
     private void notifyPlayersRoomClosed(Game game) {
         // TODO: Notify connected players through WebSocket when available.
+    }
+
+    private void notifyPlayersSessionEventWithRetry(Game game, String action) {
+        try {
+            notifyPlayersSessionEvent(game, action);
+        } catch (Exception firstError) {
+            LOGGER.error("Failed to notify players that room {} was {}. Retrying once.", game.getId(), action, firstError);
+            try {
+                notifyPlayersSessionEvent(game, action);
+            } catch (Exception secondError) {
+                LOGGER.error("Retry failed while notifying players that room {} was {}.", game.getId(), action, secondError);
+            }
+        }
+    }
+
+    private void notifyPlayersSessionEvent(Game game, String action) {
+        // TODO: Broadcast pause/resume events to connected players through WebSocket when available.
+    }
+
+    private boolean isInvalidGameStatusException(Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof IllegalArgumentException
+                    && current.getMessage() != null
+                    && current.getMessage().contains("No enum constant com.project.demo.logic.entity.game.GameStatus")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

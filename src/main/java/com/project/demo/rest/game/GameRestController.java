@@ -2,6 +2,7 @@ package com.project.demo.rest.game;
 
 import com.project.demo.logic.entity.game.CloseRoomResult;
 import com.project.demo.logic.entity.game.Game;
+import com.project.demo.logic.entity.game.GameSessionResult;
 import com.project.demo.logic.entity.game.GameRepository;
 import com.project.demo.logic.entity.game.GameService;
 import com.project.demo.logic.entity.http.GlobalResponseHandler;
@@ -86,6 +87,36 @@ public class GameRestController {
         return new GlobalResponseHandler().handleResponse(
                 closeRoomResult.getMessage(),
                 closeRoomResult.getResponse(),
+                HttpStatus.OK,
+                request
+        );
+    }
+
+    @PatchMapping("/{roomId}/pause")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> pauseGame(@PathVariable Long roomId, HttpServletRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User authenticatedUser = (User) authentication.getPrincipal();
+
+        GameSessionResult gameSessionResult = gameService.pauseGame(roomId, authenticatedUser.getId());
+        return new GlobalResponseHandler().handleResponse(
+                gameSessionResult.getMessage(),
+                gameSessionResult.getResponse(),
+                HttpStatus.OK,
+                request
+        );
+    }
+
+    @PatchMapping("/{roomId}/resume")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<?> resumeGame(@PathVariable Long roomId, HttpServletRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User authenticatedUser = (User) authentication.getPrincipal();
+
+        GameSessionResult gameSessionResult = gameService.resumeGame(roomId, authenticatedUser.getId());
+        return new GlobalResponseHandler().handleResponse(
+                gameSessionResult.getMessage(),
+                gameSessionResult.getResponse(),
                 HttpStatus.OK,
                 request
         );

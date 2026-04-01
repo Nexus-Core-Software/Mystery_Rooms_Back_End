@@ -27,6 +27,12 @@ public class Game {
     @Column(name = "closed_at")
     private LocalDateTime closedAt;
 
+    @Column(name = "paused_at")
+    private LocalDateTime pausedAt;
+
+    @Column(name = "resumed_at")
+    private LocalDateTime resumedAt;
+
     private String  imgURL;
 
     @CreationTimestamp
@@ -67,6 +73,22 @@ public class Game {
 
     public void setClosedAt(LocalDateTime closedAt) {
         this.closedAt = closedAt;
+    }
+
+    public LocalDateTime getPausedAt() {
+        return pausedAt;
+    }
+
+    public void setPausedAt(LocalDateTime pausedAt) {
+        this.pausedAt = pausedAt;
+    }
+
+    public LocalDateTime getResumedAt() {
+        return resumedAt;
+    }
+
+    public void setResumedAt(LocalDateTime resumedAt) {
+        this.resumedAt = resumedAt;
     }
 
     public String getName() {
