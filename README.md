@@ -1,2 +1,2 @@
-# java-spring
-Proyecto spring base para cursos de proyecto
+# MysterysRoomsAI
+Proyecto spring boot, del equipo de Nexus Core Software
