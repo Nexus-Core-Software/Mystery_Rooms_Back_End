@@ -23,6 +23,7 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    // Genera un token de recuperación de contraseña y lo guarda en la BD
     public String createPasswordResetToken(User getterUser) {
         Optional<User> user = repositoryUser.findByEmail(getterUser.getEmail());
         if (user.isEmpty()) {
@@ -34,6 +35,7 @@ public class UserService {
         return token;
     }
 
+    // Restablece la contraseña usando un token válido
     public boolean resetPassword(String token, String newPassword) {
         PasswordResetToken resetToken = tokenRepository.findByToken(token);
         if (resetToken == null || resetToken.isExpired()) {
@@ -42,7 +44,7 @@ public class UserService {
         User user = resetToken.getUser();
         user.setPassword(passwordEncoder.encode(newPassword));
         repositoryUser.save(user);
-        tokenRepository.delete(resetToken);
+        tokenRepository.delete(resetToken); // se elimina el token usado
         return true;
     }
 }

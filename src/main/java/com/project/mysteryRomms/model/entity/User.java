@@ -11,11 +11,12 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
+// @Entity indica que esta clase será una tabla en la base de datos
 @Table(name = "user")
 @Entity
 public class User implements UserDetails {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // ID autogenerado
     private Long id;
     private String name;
     private String lastname;
@@ -36,12 +37,7 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean enabled;
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role.getName().toString());
-        return List.of(authority);
-    }
-
+    // Relación con la entidad Role
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id", referencedColumnName = "id", nullable = false)
     private Role role;
@@ -55,9 +51,15 @@ public class User implements UserDetails {
     @Column(name = "address")
     private String address;
 
-    // Constructors
+    // Constructor vacío requerido por JPA
     public User() {}
 
+    // Métodos de la interfaz UserDetails (Spring Security)
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role.getName().toString());
+        return List.of(authority);
+    }
 
     @Override
     public boolean isAccountNonExpired() {

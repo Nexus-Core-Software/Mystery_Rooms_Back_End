@@ -10,19 +10,22 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+// @RestControllerAdvice indica que esta clase escucha los errores globales en los controladores
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    // Este método captura cualquier excepción que ocurra en la aplicación
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleSecurityException(Exception exception) {
         ProblemDetail errorDetail = null;
 
-        // TODO send this stack trace to an observability tool
+        // TODO: En un proyecto real, aquí se enviaría el error a una herramienta de monitoreo
         exception.printStackTrace();
 
+        // Manejo de errores específicos:
         if (exception instanceof BadCredentialsException) {
             errorDetail = ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(401), exception.getMessage());
             errorDetail.setProperty("description", "The username or password is incorrect");
-
             return errorDetail;
         }
 
@@ -46,6 +49,7 @@ public class GlobalExceptionHandler {
             errorDetail.setProperty("description", "The JWT token has expired");
         }
 
+        // Si no es ninguno de los anteriores, devolvemos un error genérico
         if (errorDetail == null) {
             errorDetail = ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(500), exception.getMessage());
             errorDetail.setProperty("description", "Unknown internal server error.");

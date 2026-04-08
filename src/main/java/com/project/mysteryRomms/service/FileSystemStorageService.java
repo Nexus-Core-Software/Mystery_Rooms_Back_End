@@ -15,14 +15,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
+// @Service indica que esta clase es un componente de servicio gestionado por Spring
 @Service
 public class FileSystemStorageService implements StorageService {
 
-    @Value("${media.location}")
+    @Value("${media.location}") // Ubicación configurada en application.properties
     private String mediaLocation;
 
     private Path rootLocation;
 
+    // Inicializa el directorio raíz al arrancar la aplicación
     @Override
     @PostConstruct
     public void init() throws IOException {
@@ -30,6 +32,7 @@ public class FileSystemStorageService implements StorageService {
         Files.createDirectories(rootLocation);
     }
 
+    // Almacena un archivo en el sistema de ficheros
     @Override
     public String store(MultipartFile file) {
         try {
@@ -47,13 +50,14 @@ public class FileSystemStorageService implements StorageService {
         }
     }
 
+    // Carga un archivo como recurso para poder servirlo (ej. descargar o mostrar)
     @Override
     public Resource loadAsResource(String filename) {
         try {
             Path file = rootLocation.resolve(filename);
             Resource resource = new UrlResource(file.toUri());
 
-            if (resource.exists()|| resource.isReadable()) {
+            if (resource.exists() || resource.isReadable()) {
                 return resource;
             } else {
                 throw new RuntimeException("Could not read file: " + filename);

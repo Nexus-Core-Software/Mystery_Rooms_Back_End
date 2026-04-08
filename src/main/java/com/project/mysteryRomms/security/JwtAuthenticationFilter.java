@@ -17,12 +17,14 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 
+// @Component indica que este filtro es un bean gestionado por Spring
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final HandlerExceptionResolver handlerExceptionResolver;
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
+    // Constructor con inyección de dependencias
     public JwtAuthenticationFilter(
             JwtService jwtService,
             UserDetailsService userDetailsService,
@@ -33,6 +35,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.handlerExceptionResolver = handlerExceptionResolver;
     }
 
+    // Método principal que se ejecuta en cada petición
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
@@ -50,7 +53,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);  // Si no hay JWT, pasa al siguiente filtro
-            return ;
+            return;
         }
 
         try {
@@ -60,13 +63,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (userEmail != null && authentication == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
-                // Check if the user is enabled
+                // Verificar si el usuario está habilitado
                 if (!userDetails.isEnabled()) {
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     return;
                 }
 
-                // Si el token es válido, autenticamos al usuario
+                // Validar el token
                 if (jwtService.isTokenValid(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,

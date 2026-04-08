@@ -12,32 +12,38 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+// @Configuration indica que esta clase define beans de configuración para Spring
 @Configuration
 public class AppConfig {
 
     @Autowired
     private final RepositoryUser repositoryUser;
 
+    // Constructor para inyectar el repositorio de usuarios
     public AppConfig(RepositoryUser repositoryUser) {
         this.repositoryUser = repositoryUser;
     }
 
+    // Bean que define cómo cargar usuarios desde la base de datos
     @Bean
     UserDetailsService userDetailsService() {
         return username -> repositoryUser.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 
+    // Bean para encriptar contraseñas con BCrypt
     @Bean
     BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    // Bean para manejar la autenticación
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
+    // Bean que define el proveedor de autenticación usando DAO
     @Bean
     AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -47,5 +53,4 @@ public class AppConfig {
 
         return authProvider;
     }
-
 }
