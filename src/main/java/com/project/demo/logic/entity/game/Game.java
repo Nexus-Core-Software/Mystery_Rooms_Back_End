@@ -33,6 +33,18 @@ public class Game {
     @Column(name = "resumed_at")
     private LocalDateTime resumedAt;
 
+    @Column(name = "finished_at")
+    private LocalDateTime finishedAt;
+
+    @Column(name = "closure_reason")
+    private String closureReason;
+
+    @Column(name = "session_duration")
+    private Long sessionDuration;
+
+    @Column(name = "session_status")
+    private String sessionStatus;
+
     private String  imgURL;
 
     @CreationTimestamp
@@ -89,6 +101,38 @@ public class Game {
 
     public void setResumedAt(LocalDateTime resumedAt) {
         this.resumedAt = resumedAt;
+    }
+
+    public LocalDateTime getFinishedAt() {
+        return finishedAt;
+    }
+
+    public void setFinishedAt(LocalDateTime finishedAt) {
+        this.finishedAt = finishedAt;
+    }
+
+    public String getClosureReason() {
+        return closureReason;
+    }
+
+    public void setClosureReason(String closureReason) {
+        this.closureReason = closureReason;
+    }
+
+    public Long getSessionDuration() {
+        return sessionDuration;
+    }
+
+    public void setSessionDuration(Long sessionDuration) {
+        this.sessionDuration = sessionDuration;
+    }
+
+    public String getSessionStatus() {
+        return sessionStatus;
+    }
+
+    public void setSessionStatus(String sessionStatus) {
+        this.sessionStatus = sessionStatus;
     }
 
     public String getName() {

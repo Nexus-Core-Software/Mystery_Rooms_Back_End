@@ -3,6 +3,7 @@ package com.project.demo.logic.entity.game;
 import com.project.demo.logic.entity.user.User;
 import com.project.demo.logic.entity.user.UserRepository;
 import com.project.demo.rest.game.dto.CloseRoomResponse;
+import com.project.demo.rest.game.dto.FinishSessionResponse;
 import com.project.demo.rest.game.dto.GameSessionResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +12,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 
 @Service
 public class GameService {
@@ -48,7 +52,7 @@ public class GameService {
         }
 
         if (hasActiveGameSession(game)) {
-            finalizarSesion(game);
+            finishSession(game.getId(), userId, null);
         }
 
         game.setStatus(GameStatus.CERRADA);
@@ -113,6 +117,33 @@ public class GameService {
         return GameSessionResult.resumed(buildSessionResponse(savedGame));
     }
 
+    public FinishSessionResult finishSession(Long roomId, Long userId, String closureReason) {
+        Game game = gameRepository.findById(roomId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sala no encontrada."));
+
+        if (game.getStatus() != GameStatus.ACTIVA && game.getStatus() != GameStatus.PAUSADA) {
+            return FinishSessionResult.alreadyFinished(buildFinishResponse(game));
+        }
+
+        if (game.getHost() == null || !game.getHost().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el host puede finalizar la sesión");
+        }
+
+        LocalDateTime finishedAt = LocalDateTime.now();
+        Long sessionDuration = calculateSessionDurationSeconds(game.getCreatedAt(), finishedAt);
+
+        game.setSessionDuration(sessionDuration);
+        game.setStatus(GameStatus.FINALIZADA);
+        game.setFinishedAt(finishedAt);
+        game.setClosureReason(resolveClosureReason(closureReason));
+
+        Game savedGame = saveGameWithRetry(game);
+
+        notifyPlayersSessionEventWithRetry(savedGame, "finished");
+
+        return FinishSessionResult.finished(buildFinishResponse(savedGame));
+    }
+
     private CloseRoomResponse buildResponse(Game game) {
         return new CloseRoomResponse(game.getId(), game.getStatus(), game.getClosedAt());
     }
@@ -121,13 +152,76 @@ public class GameService {
         return new GameSessionResponse(game.getId(), game.getStatus(), game.getPausedAt(), game.getResumedAt());
     }
 
+    private FinishSessionResponse buildFinishResponse(Game game) {
+        return new FinishSessionResponse(
+                game.getId(),
+                game.getStatus(),
+                game.getFinishedAt(),
+                game.getSessionDuration(),
+                game.getClosureReason()
+        );
+    }
+
     private boolean hasActiveGameSession(Game game) {
         // TODO: Integrate active session verification when session module is available.
         return false;
     }
 
-    private void finalizarSesion(Game game) {
-        // TODO: Integrate game session finalization logic.
+    private Game saveGameWithRetry(Game game) {
+        int[] backoffMillis = new int[]{100, 200, 400};
+        int attempt = 0;
+
+        while (true) {
+            try {
+                return gameRepository.save(game);
+            } catch (RuntimeException exception) {
+                if (attempt >= backoffMillis.length) {
+                    throw new ResponseStatusException(
+                            HttpStatus.INTERNAL_SERVER_ERROR,
+                            "No se pudo finalizar la sesión.",
+                            exception
+                    );
+                }
+
+                int waitTime = backoffMillis[attempt];
+                attempt++;
+                LOGGER.error(
+                        "Failed to save game session for room {}. Retrying in {}ms.",
+                        game.getId(),
+                        waitTime,
+                        exception
+                );
+
+                try {
+                    Thread.sleep(waitTime);
+                } catch (InterruptedException interruptedException) {
+                    Thread.currentThread().interrupt();
+                    throw new ResponseStatusException(
+                            HttpStatus.INTERNAL_SERVER_ERROR,
+                            "No se pudo finalizar la sesión.",
+                            interruptedException
+                    );
+                }
+            }
+        }
+    }
+
+    private Long calculateSessionDurationSeconds(Date createdAt, LocalDateTime finishedAt) {
+        if (createdAt == null || finishedAt == null) {
+            return null;
+        }
+
+        LocalDateTime createdAtTime = LocalDateTime.ofInstant(createdAt.toInstant(), ZoneId.systemDefault());
+        long durationSeconds = Duration.between(createdAtTime, finishedAt).getSeconds();
+        return durationSeconds < 0 ? 0L : durationSeconds;
+    }
+
+    private String resolveClosureReason(String closureReason) {
+        if (closureReason == null || closureReason.trim().isEmpty()) {
+            return "Finalización manual";
+        }
+
+        return closureReason.trim();
     }
 
     private void notifyPlayersWithRetry(Game game) {

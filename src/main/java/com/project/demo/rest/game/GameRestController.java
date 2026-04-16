@@ -1,6 +1,7 @@
 package com.project.demo.rest.game;
 
 import com.project.demo.logic.entity.game.CloseRoomResult;
+import com.project.demo.logic.entity.game.FinishSessionResult;
 import com.project.demo.logic.entity.game.Game;
 import com.project.demo.logic.entity.game.GameSessionResult;
 import com.project.demo.logic.entity.game.GameRepository;
@@ -8,6 +9,7 @@ import com.project.demo.logic.entity.game.GameService;
 import com.project.demo.logic.entity.http.GlobalResponseHandler;
 import com.project.demo.logic.entity.user.User;
 import com.project.demo.rest.game.dto.CloseRoomRequest;
+import com.project.demo.rest.game.dto.FinishSessionRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -121,5 +123,30 @@ public class GameRestController {
                 request
         );
     }
+
+        @PostMapping("/{roomId}/finish")
+        @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'SUPER_ADMIN')")
+        public ResponseEntity<?> finishSession(
+            @PathVariable Long roomId,
+            @RequestBody(required = false) FinishSessionRequest finishSessionRequest,
+            HttpServletRequest request
+        ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User authenticatedUser = (User) authentication.getPrincipal();
+
+        String closureReason = finishSessionRequest != null ? finishSessionRequest.getClosureReason() : null;
+        FinishSessionResult finishSessionResult = gameService.finishSession(
+            roomId,
+            authenticatedUser.getId(),
+            closureReason
+        );
+
+        return new GlobalResponseHandler().handleResponse(
+            finishSessionResult.getMessage(),
+            finishSessionResult.getResponse(),
+            HttpStatus.OK,
+            request
+        );
+        }
 
 }
